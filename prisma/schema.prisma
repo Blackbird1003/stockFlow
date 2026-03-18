@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          Role           @default(STAFF)
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  categories    Category[]
+  products      Product[]
+  reports       Report[]
+  inventoryLogs InventoryLog[]
+  locations     Location[]
+  notifications Notification[]
+  apiKeys       ApiKey[]
+  sales         Sale[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+
+  @@unique([name, userId])
+  @@map("categories")
+}
+
+model Product {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  categoryId   String
+  category     Category          @relation(fields: [categoryId], references: [id])
+  sku          String
+  price        Float
+  costPrice    Float
+  quantity     Int               @default(0)
+  minimumStock Int               @default(10)
+  description  String?
+  imageUrl     String?
+  createdAt    DateTime          @default(now())
+  logs         InventoryLog[]
+  locations    ProductLocation[]
+  sales        Sale[]
+
+  @@unique([sku, userId])
+  @@map("products")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  type        String
+  data        Json?
+  createdAt   DateTime @default(now())
+
+  @@map("reports")
+}
+
+model InventoryLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  action         String
+  quantityChange Int
+  previousQty    Int?
+  newQty         Int?
+  createdAt      DateTime @default(now())
+
+  @@map("inventory_logs")
+}
+
+model Location {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  products    ProductLocation[]
+  createdAt   DateTime          @default(now())
+
+  @@unique([name, userId])
+  @@map("locations")
+}
+
+model ProductLocation {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  quantity   Int      @default(0)
+
+  @@unique([productId, locationId])
+  @@map("product_locations")
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  priceAtSale Float
+  source      String   @default("manual")
+  createdAt   DateTime @default(now())
+
+  @@map("sales")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  productId String?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  keyHash   String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("api_keys")
+}
