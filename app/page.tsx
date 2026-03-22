@@ -7,7 +7,6 @@ import {
   Bot,
   CheckCircle,
   ArrowRight,
-  TrendingUp,
   Package,
 } from "lucide-react";
 import { ContactButton } from "@/components/contact-button";
@@ -192,31 +191,6 @@ export default function LandingPage() {
                   <p className="text-sm text-slate-500 leading-relaxed">{f.description}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Demo */}
-        <section className="py-20 px-6 bg-slate-50">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-              <TrendingUp className="w-3.5 h-3.5" />
-              Product Demo
-            </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">See How It Works</h2>
-            <p className="text-slate-500 mb-10">
-              Watch how StockFlow simplifies your inventory management workflow
-              in just a few clicks.
-            </p>
-            <div className="relative rounded-2xl overflow-hidden bg-slate-900 aspect-video shadow-xl">
-              {/* Replace src with your actual video URL when ready */}
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-                title="StockFlow Demo"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
             </div>
           </div>
         </section>

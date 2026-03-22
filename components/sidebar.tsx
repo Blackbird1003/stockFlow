@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Settings,
   Sparkles,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -36,47 +37,74 @@ const navItems = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const initials = session?.user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U";
+  const initials =
+    session?.user?.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U";
 
-  const filteredNav = navItems.filter(
-    (item) => !item.adminOnly || isAdmin
-  );
+  const filteredNav = navItems.filter((item) => !item.adminOnly || isAdmin);
 
-  return (
+  // Listen for mobile menu toggle from Topbar
+  useEffect(() => {
+    const handler = () => setMobileOpen((prev) => !prev);
+    window.addEventListener("toggle-mobile-menu", handler);
+    return () => window.removeEventListener("toggle-mobile-menu", handler);
+  }, []);
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  const sidebarContent = (isMobile: boolean) => (
     <aside
       className={cn(
-        "relative flex flex-col h-screen bg-slate-900 border-r border-slate-800 transition-all duration-300 ease-in-out",
-        collapsed ? "w-16" : "w-64"
+        "relative flex flex-col h-full bg-slate-900 border-r border-slate-800 transition-all duration-300 ease-in-out",
+        isMobile ? "w-72" : collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Toggle button */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-slate-700 border border-slate-600 text-slate-300 hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition-all duration-200"
-      >
-        {collapsed ? (
-          <ChevronRight className="w-3 h-3" />
-        ) : (
-          <ChevronLeft className="w-3 h-3" />
-        )}
-      </button>
+      {/* Desktop collapse toggle */}
+      {!isMobile && (
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-20 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-slate-700 border border-slate-600 text-slate-300 hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition-all duration-200"
+        >
+          {collapsed ? (
+            <ChevronRight className="w-3 h-3" />
+          ) : (
+            <ChevronLeft className="w-3 h-3" />
+          )}
+        </button>
+      )}
 
-      {/* Logo */}
-      <div className={cn("flex items-center h-16 px-4 border-b border-slate-800", collapsed && "justify-center px-2")}>
-        <Logo collapsed={collapsed} />
+      {/* Logo + mobile close button */}
+      <div
+        className={cn(
+          "flex items-center h-16 px-4 border-b border-slate-800",
+          !isMobile && collapsed ? "justify-center px-2" : "justify-between"
+        )}
+      >
+        <Logo collapsed={!isMobile && collapsed} />
+        {isMobile && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Role Badge */}
-      {!collapsed && (
+      {(!collapsed || isMobile) && (
         <div className="px-4 py-2">
           <Badge
             className={cn(
@@ -96,7 +124,8 @@ export function Sidebar() {
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         {filteredNav.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link
@@ -107,9 +136,9 @@ export function Sidebar() {
                 isActive
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/50"
                   : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
-                collapsed && "justify-center px-2"
+                !isMobile && collapsed && "justify-center px-2"
               )}
-              title={collapsed ? item.label : undefined}
+              title={!isMobile && collapsed ? item.label : undefined}
             >
               <Icon
                 className={cn(
@@ -117,7 +146,7 @@ export function Sidebar() {
                   isActive ? "w-5 h-5 text-white" : "w-5 h-5"
                 )}
               />
-              {!collapsed && (
+              {(isMobile || !collapsed) && (
                 <span className="truncate">{item.label}</span>
               )}
             </Link>
@@ -126,29 +155,43 @@ export function Sidebar() {
 
         {/* Blackbird AI button */}
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent("open-blackbird"))}
+          onClick={() => {
+            setMobileOpen(false);
+            window.dispatchEvent(new CustomEvent("open-blackbird"));
+          }}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
             "text-indigo-400 hover:bg-indigo-600/20 hover:text-indigo-300",
-            collapsed && "justify-center px-2"
+            !isMobile && collapsed && "justify-center px-2"
           )}
-          title={collapsed ? "Blackbird AI" : undefined}
+          title={!isMobile && collapsed ? "Blackbird AI" : undefined}
         >
           <Sparkles className="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
-          {!collapsed && <span className="truncate">Blackbird AI</span>}
+          {(isMobile || !collapsed) && (
+            <span className="truncate">Blackbird AI</span>
+          )}
         </button>
       </nav>
 
       {/* Bottom section */}
-      <div className={cn("p-3 border-t border-slate-800", collapsed && "flex justify-center")}>
-        {!collapsed ? (
+      <div
+        className={cn(
+          "p-3 border-t border-slate-800",
+          !isMobile && collapsed && "flex justify-center"
+        )}
+      >
+        {isMobile || !collapsed ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center w-full gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors group">
                 <Avatar className="h-8 w-8 shrink-0">
                   {session?.user?.avatarUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={session.user.avatarUrl} alt="Avatar" className="h-8 w-8 rounded-full object-cover" />
+                    <img
+                      src={session.user.avatarUrl}
+                      alt="Avatar"
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
                   )}
                   <AvatarFallback className="bg-indigo-600 text-white text-xs font-bold">
                     {initials}
@@ -167,7 +210,10 @@ export function Sidebar() {
             <DropdownMenuContent align="end" side="top" className="w-56 mb-2">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={() => signOut({ callbackUrl: "/login" })}>
+              <DropdownMenuItem
+                className="text-red-500 focus:text-red-500"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </DropdownMenuItem>
@@ -184,5 +230,29 @@ export function Sidebar() {
         )}
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar — hidden on mobile */}
+      <div className="hidden lg:flex h-screen flex-shrink-0">
+        {sidebarContent(false)}
+      </div>
+
+      {/* Mobile overlay drawer */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="relative h-full">
+            {sidebarContent(true)}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
